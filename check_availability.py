@@ -41,24 +41,24 @@ def log(msg):
         f.write(line + "\n")
 
 
+def _is_target_availability_response(resp):
+    return (
+        "/availability" in resp.url
+        and "minTickets" not in resp.url
+        and f"month={TARGET_MONTH}" in resp.url
+        and f"year={TARGET_YEAR}" in resp.url
+    )
+
+
 def get_availability_for_target():
-    """Loads the page, captures the /availability JSON response for
-    TARGET_YEAR/TARGET_MONTH, and returns the status string for TARGET_DATE
-    (e.g. "availability" / "no-availability"), or None if not found/failed."""
-    captured = {}
+    """Loads the page and waits specifically for the /availability response
+    for TARGET_YEAR/TARGET_MONTH, returning the status string for TARGET_DATE
+    (e.g. "availability" / "no-availability"), or None on failure.
 
-    def on_response(resp):
-        if (
-            "/availability" in resp.url
-            and "minTickets" not in resp.url
-            and f"month={TARGET_MONTH}" in resp.url
-            and f"year={TARGET_YEAR}" in resp.url
-        ):
-            try:
-                captured["data"] = resp.json()
-            except Exception as e:
-                log(f"Failed to parse availability response as JSON: {e}")
-
+    Waits on that exact response rather than "networkidle" -- the page has a
+    persistent chat-widget iframe that keeps background network activity
+    alive, so "networkidle" never reliably fires (worked locally by luck,
+    timed out consistently in CI)."""
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         try:
@@ -69,17 +69,17 @@ def get_availability_for_target():
                 )
             )
             page = context.new_page()
-            page.on("response", on_response)
-            page.goto(PAGE_URL, wait_until="networkidle", timeout=30000)
-            page.wait_for_timeout(2000)  # let async calendar data settle
+            try:
+                with page.expect_response(_is_target_availability_response, timeout=45000) as resp_info:
+                    page.goto(PAGE_URL, wait_until="domcontentloaded", timeout=45000)
+                data = resp_info.value.json()
+            except Exception as e:
+                log(f"Did not capture an availability response for {TARGET_YEAR}-{TARGET_MONTH:02d}: {e}")
+                return None
         finally:
             browser.close()
 
-    if "data" not in captured:
-        log(f"Did not capture an availability response for {TARGET_YEAR}-{TARGET_MONTH:02d}")
-        return None
-
-    return captured["data"].get(TARGET_DATE)
+    return data.get(TARGET_DATE)
 
 
 def send_email(status):
