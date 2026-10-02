@@ -23,8 +23,8 @@ from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 
 # ---- config ----
-TARGET_DATE = "2026-10-10"          # the date we care about
-TARGET_YEAR, TARGET_MONTH = 2026, 10
+TARGET_DATE = "2026-11-03"  # TEMP: CI email-send test          # the date we care about
+TARGET_YEAR, TARGET_MONTH = 2026, 11  # TEMP
 PAGE_URL = "https://tickets.sagradafamilia.org/en/1-individual/4375-sagrada-familia"
 
 HERE = Path(__file__).parent
