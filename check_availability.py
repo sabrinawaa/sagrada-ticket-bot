@@ -87,7 +87,7 @@ def send_email(status):
     smtp_port = int(os.environ.get("SMTP_PORT", "587"))
     smtp_user = os.environ["SMTP_USER"]
     smtp_pass = os.environ["SMTP_PASS"]
-    to_addr = os.environ.get("NOTIFY_TO", "sabrina.wang@cern.ch")
+    to_addr = os.environ["NOTIFY_TO"]
 
     body = (
         f"Sagrada Familia tickets for {TARGET_DATE} just became available "
