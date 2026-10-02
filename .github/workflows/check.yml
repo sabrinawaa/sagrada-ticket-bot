@@ -1,0 +1,46 @@
+name: Check Sagrada Familia ticket availability
+
+on:
+  schedule:
+    # Every 15 minutes, offset from :00/:15/:30/:45 to avoid GitHub's busiest minutes.
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch: {}  # allows manual "Run workflow" button for testing
+
+permissions:
+  contents: write  # needed to commit state.json back
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+
+      - name: Run availability check
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          NOTIFY_TO: ${{ secrets.NOTIFY_TO }}
+        run: python check_availability.py
+
+      - name: Commit updated state
+        run: |
+          git config user.name "sagrada-ticket-bot"
+          git config user.email "actions@github.com"
+          if ! git diff --quiet state.json; then
+            git add state.json
+            git commit -m "Update state [skip ci]"
+            git push
+          else
+            echo "No state change, nothing to commit."
+          fi
