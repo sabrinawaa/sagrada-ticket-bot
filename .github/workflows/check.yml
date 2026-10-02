@@ -2,7 +2,7 @@ name: Check Sagrada Familia ticket availability
 
 on:
   schedule:
-    # Every 5 minutes -- GitHub's practical minimum for scheduled workflows;
+    # Every 5 minutes (re-registered 2026-10-02 after a schedule not firing) -- GitHub's practical minimum for scheduled workflows;
     # finer-grained than this isn't reliably honored.
     - cron: "*/5 * * * *"
   workflow_dispatch: {}  # allows manual "Run workflow" button for testing
